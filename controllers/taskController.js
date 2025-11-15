@@ -12,7 +12,7 @@ export const getTask = async (req,res) => {
 };
 
 export const createTask = async (req, res) => {
-    const newTask = await Task.create(req,body);
+    const newTask = await Task.create(req.body);
     res.status(201).json(newTask);
 };
 

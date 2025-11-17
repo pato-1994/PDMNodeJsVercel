@@ -21,10 +21,10 @@ export class Task {
     }
 
     static async update(id, task) {
-        const { name, descripcion, deadline } = task;
+        const { name, descripcion,status, deadline } = task;
         await pool.query(
-            "UPDATE task SET name = ?, descripcion = ?, deadline = ? WHERE id = ?",
-            [name, descripcion, deadline, id]
+            "UPDATE task SET name = ?, descripcion = ?, status = ?, deadline = ? WHERE id = ?",
+            [name, descripcion, status, deadline, id]
         );
        return { id, ...task };
     }

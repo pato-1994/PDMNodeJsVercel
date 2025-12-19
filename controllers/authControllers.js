@@ -1,23 +1,54 @@
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs'; // (Opcional si usas User.login, pero bueno tenerlo)
+import dotenv from 'dotenv';
+// IMPORTANTE: Importamos tu nuevo Modelo
+import { User } from '../models/User.js'; 
+
 dotenv.config();
 
-const USER = {
-    username: "root",
-    passwordHash: await bcrypt.hash('D@nue1990', 10) // Pre-hashed password
-};
+// En controllers/authControllers.js
 export const login = async (req, res) => {
-    const { username, password } = req.body;
+    // 1. Android envía 'email' y 'password'
+    const { email, password } = req.body;
 
-    if(username !== USER.username) {
-        return res.status(401).json({ message: "Invalid username " });
-    }
+    try {
+        // 2. Llamamos al Modelo corregido
+        const user = await User.login(email, password);
 
-    const validPassword = await bcrypt.compare(password, USER.passwordHash)
-    if(!validPassword) {
-        return res.status(401).json({ message: "Invalid password" });
+        // 3. Generamos Token
+        const token = jwt.sign(
+            { id: user.id, username: user.username }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: "1h" }
+        );
+
+        // 4. Respondemos con TODO lo que Android UserDto necesita
+        res.json({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            token: token
+        });
+
+    } catch (error) {
+        res.status(401).json({ message: "Credenciales inválidas" });
     }
-    const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: "1y" });
-    res.json({ token });
+};
+// Necesitas agregar este endpoint nuevo para poder crear usuarios reales
+export const register = async (req, res) => {
+    try {
+        // Usa el método create que hicimos en User.js
+        const { username, password, phone } = req.body;
+        
+        // Mapeamos los nombres si es necesario (frontend manda 'username', DB usa 'name_user')
+        const newUser = await User.create({ 
+            name_user: username, 
+            passw: password, 
+            phone: phone 
+        });
+
+        res.status(201).json({ message: "Usuario registrado", userId: newUser.id_user });
+    } catch (error) {
+        res.status(500).json({ message: "Error al registrar: " + error.message });
+    }
 };

@@ -1,4 +1,4 @@
-import { Task } from "../model/Task.js";
+import { Task } from "../models/Task.js";
 
 export const getTasks = async (req, res) => {
     const userId = req.user.id;

@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs'; // (Opcional si usas User.login, pero bueno tenerlo)
 import dotenv from 'dotenv';
 // IMPORTANTE: Importamos tu nuevo Modelo
-import { User } from '../model/User.js'; 
+import { User } from '../models/User.js'; 
 
 dotenv.config();
 

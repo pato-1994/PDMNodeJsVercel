@@ -1,34 +1,71 @@
+import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js'; 
+import dotenv from 'dotenv';
 
-// ... (tu función login sigue igual)
+dotenv.config();
 
+// --- LOGIN ---
+export const login = async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        // 1. Verificar credenciales con el Modelo
+        const user = await User.login(email, password);
+
+        // 2. Generar Token
+        const token = jwt.sign(
+            { id: user.id, username: user.username }, 
+            process.env.JWT_SECRET || "secreto_super_seguro", 
+            { expiresIn: "1h" }
+        );
+
+        // 3. Responder a Android
+        res.json({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            token: token
+        });
+
+    } catch (error) {
+        console.error("❌ Error en Login:", error);
+        if (error.message === "Usuario no encontrado" || error.message === "Contraseña incorrecta") {
+            res.status(401).json({ message: "Credenciales inválidas" });
+        } else {
+            res.status(500).json({ message: "Error interno: " + error.message });
+        }
+    }
+};
+
+// --- REGISTER (Corregido) ---
 export const register = async (req, res) => {
     try {
-        console.log("📥 Recibiendo petición de registro:", req.body);
+        console.log("------------------------------------------------");
+        console.log("📥 Petición de REGISTRO recibida");
+        console.log("📦 Body:", req.body);
 
-        // ⚠️ CORRECCIÓN: Asegúrate de leer 'email', 'username' y 'password'
-        // Antes probablemente tenías 'phone' aquí.
         const { username, email, password } = req.body;
 
-        // Validaciones básicas
+        // Validar que lleguen datos
         if (!username || !email || !password) {
-            return res.status(400).json({ message: "Faltan datos obligatorios" });
+            console.error("❌ Faltan datos obligatorios");
+            return res.status(400).json({ message: "Faltan datos: username, email o password" });
         }
 
-        // Llamamos al Modelo para crear el usuario
+        // Crear usuario en BD
         const newUser = await User.create({ 
             username, 
             email, 
             password 
         });
 
-        console.log("✅ Usuario registrado con ID:", newUser.id);
+        console.log("✅ Usuario creado con ID:", newUser.id);
         res.status(201).json({ message: "Usuario registrado", userId: newUser.id });
 
     } catch (error) {
-        console.error("❌ Error en Register:", error);
+        console.error("❌ Error CRÍTICO en Register:", error);
         
-        // Si el error es por email duplicado (MySQL devuelve código ER_DUP_ENTRY)
+        // Manejo de email duplicado
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ message: "El correo ya está registrado" });
         }

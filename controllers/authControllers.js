@@ -1,56 +1,38 @@
-import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js'; 
-import dotenv from 'dotenv';
 
-dotenv.config();
+// ... (tu función login sigue igual)
 
-export const login = async (req, res) => {
-    const { email, password } = req.body;
-
-    try {
-        const user = await User.login(email, password);
-
-        const token = jwt.sign(
-            { id: user.id, username: user.username }, 
-            process.env.JWT_SECRET || "secret", // Fallback por seguridad
-            { expiresIn: "1h" }
-        );
-
-        res.json({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            token: token
-        });
-
-    } catch (error) {
-        // ⚠️ CAMBIO CLAVE: Imprimir el error real en los logs de Vercel
-        console.error("❌ Error en Login:", error);
-
-        // Si es un error de conexión, devolvemos 500, si es credenciales 401
-        if (error.message === "Usuario no encontrado" || error.message === "Contraseña incorrecta") {
-            res.status(401).json({ message: "Credenciales inválidas" });
-        } else {
-            res.status(500).json({ message: "Error del servidor: " + error.message });
-        }
-    }
-};
-
-// Función corregida para tu nueva Base de Datos
 export const register = async (req, res) => {
     try {
-        // Ahora recibimos lo que tu BD realmente tiene: username, email, password
+        console.log("📥 Recibiendo petición de registro:", req.body);
+
+        // ⚠️ CORRECCIÓN: Asegúrate de leer 'email', 'username' y 'password'
+        // Antes probablemente tenías 'phone' aquí.
         const { username, email, password } = req.body;
-        
+
+        // Validaciones básicas
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: "Faltan datos obligatorios" });
+        }
+
+        // Llamamos al Modelo para crear el usuario
         const newUser = await User.create({ 
             username, 
             email, 
             password 
         });
 
+        console.log("✅ Usuario registrado con ID:", newUser.id);
         res.status(201).json({ message: "Usuario registrado", userId: newUser.id });
+
     } catch (error) {
         console.error("❌ Error en Register:", error);
+        
+        // Si el error es por email duplicado (MySQL devuelve código ER_DUP_ENTRY)
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ message: "El correo ya está registrado" });
+        }
+
         res.status(500).json({ message: "Error al registrar: " + error.message });
     }
 };

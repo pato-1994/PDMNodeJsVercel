@@ -1,69 +1,85 @@
-import { Task } from "../models/Task.js";
+import { Task } from '../models/Task.js';
 
-// Obtener Tareas
+// --- OBTENER TAREAS (GET) ---
 export const getTasks = async (req, res) => {
     try {
-        // req.user viene del middleware 'verifyToken' (que descifra el token)
-        const userId = req.user.id; 
+        const userId = req.userId; // Viene del middleware auth
+        console.log(`📥 Solicitando tareas para Usuario ID: ${userId}`);
+
+        if (!userId) {
+            return res.status(400).json({ message: "ID de usuario no identificado" });
+        }
+
+        // Llamamos al modelo
+        const tasks = await Task.getByUserId(userId);
         
-        const tasks = await Task.getAll(userId);
+        console.log(`✅ Encontradas ${tasks.length} tareas.`);
         res.json(tasks);
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("❌ Error en getTasks:", error);
+        res.status(500).json({ message: "Error al obtener tareas: " + error.message });
     }
 };
 
-// Crear Tarea
+// --- CREAR TAREA (POST) ---
 export const createTask = async (req, res) => {
     try {
-        const userId = req.user.id; // ¡Importante! El ID viene del token, no del body
-        const { name, descripcion, deadline } = req.body;
+        const { name, descripcion, deadline, updatedAt } = req.body;
+        const userId = req.userId;
 
-        // Validación básica
-        if (!name) return res.status(400).json({ message: "El nombre es obligatorio" });
+        console.log("📥 Creando tarea:", name);
 
-        const newTask = await Task.create({ 
-            name, 
-            descripcion, 
-            deadline, 
-            id_user: userId 
+        const newTask = await Task.create({
+            name,
+            descripcion,
+            deadline,
+            id_user: userId,
+            updatedAt: updatedAt || Date.now() // Si Android no manda fecha, ponemos la de hoy
         });
 
-        res.json(newTask);
+        res.status(201).json(newTask);
+
     } catch (error) {
-        console.error(error); // Para ver el error en Vercel si falla
-        res.status(500).json({ message: error.message });
+        console.error("❌ Error en createTask:", error);
+        res.status(500).json({ message: "Error creando tarea" });
     }
 };
 
-// Actualizar Tarea
+// --- ACTUALIZAR TAREA (PUT) ---
 export const updateTask = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await Task.update(id, req.body);
+        const { name, descripcion, deadline, status, updatedAt } = req.body;
 
-        if (result) {
-            res.json({ message: "Tarea actualizada" });
-        } else {
-            res.status(404).json({ message: "Tarea no encontrada" });
-        }
+        console.log(`📥 Actualizando tarea ${id}`);
+
+        const updatedTask = await Task.update(id, {
+            name,
+            descripcion,
+            deadline,
+            status,
+            updatedAt
+        });
+
+        res.json(updatedTask);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("❌ Error en updateTask:", error);
+        res.status(500).json({ message: "Error actualizando" });
     }
 };
 
-// Borrar Tarea
+// --- BORRAR TAREA (DELETE) ---
 export const deleteTask = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await Task.delete(id);
-
-        if (result) {
-            res.json({ message: "Tarea eliminada" });
-        } else {
-            res.status(404).json({ message: "Tarea no encontrada" });
-        }
+        console.log(`📥 Eliminando tarea ${id}`);
+        
+        await Task.delete(id);
+        
+        res.status(200).send(); // 200 OK vacío
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("❌ Error en deleteTask:", error);
+        res.status(500).json({ message: "Error eliminando" });
     }
 };

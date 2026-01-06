@@ -1,29 +1,21 @@
-// en: index.js
-
 import dotenv from "dotenv";
 import express from "express";
+import cors from "cors"; // Si no usas cors, puedes borrar esta línea y la de app.use(cors())
 import taskRoutes from "./routes/task.js";
 import authRoutes from "./routes/auth.js";
 
 dotenv.config();
 const app = express();
 
-// --- 1. MIDDLEWARE ---
-// Primero, le decimos a la app cómo leer JSON
-app.use(express.json());
+// --- CONFIGURACIÓN CRÍTICA ---
+app.use(cors()); // Permite conexiones externas
+app.use(express.json()); // OBLIGATORIO: Entender JSON de Android
+app.use(express.urlencoded({ extended: true }));
 
-// --- 2. RUTAS ---
-// Ahora, le decimos qué rutas usar
+// --- RUTAS ---
 app.use("/api/tasks", taskRoutes);
 app.use("/api/auth", authRoutes);
 
-app.get("/", (req, res) => res.send("API Task funcionando Donaldo"));
+app.get("/", (req, res) => res.send("API Funcionando OK"));
 
-// --- 3. (REMOVIDO) ---
-// Quitamos app.listen(). Vercel se encarga de esto.
-// const PORT = process.env.PORT || 3000;
-// app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
-
-// --- 4. EXPORT (AL FINAL) ---
-// Exportamos la app YA CONFIGURADA
 export default app;
